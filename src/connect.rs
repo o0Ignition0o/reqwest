@@ -43,7 +43,9 @@ pub(crate) enum HttpConnector {
 
 impl HttpConnector {
     pub(crate) fn new_gai() -> Self {
-        Self::Gai(hyper::client::HttpConnector::new())
+        let mut connector = hyper::client::HttpConnector::new();
+        connector.set_reuse_address(true);
+        Self::Gai(connector)
     }
 
     pub(crate) fn new_gai_with_overrides(overrides: HashMap<String, SocketAddr>) -> Self {
@@ -57,7 +59,11 @@ impl HttpConnector {
     #[cfg(feature = "trust-dns")]
     pub(crate) fn new_trust_dns() -> crate::Result<HttpConnector> {
         TrustDnsResolver::new()
-            .map(hyper::client::HttpConnector::new_with_resolver)
+            .map(|resolver| {
+                let mut connector = hyper::client::HttpConnector::new_with_resolver(resolver);
+                connector.set_reuse_address(true);
+            connector
+        })
             .map(Self::TrustDns)
             .map_err(crate::error::builder)
     }
